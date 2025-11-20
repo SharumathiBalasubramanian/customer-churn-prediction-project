@@ -13,7 +13,7 @@ Churn (Yes / No)
 Rows: 7043
 Columns: 21
 # Main Feature Categories
-Category	Examples
+**Category	Examples**
 - Customer Demographics	Gender, SeniorCitizen, Partner, Dependents
 - Customer Account Info	Tenure, Contract, PaymentMethod, PaperlessBilling
 - Services Signed Up	PhoneService, InternetService, StreamingTV, StreamingMovies
@@ -69,7 +69,7 @@ Very strong at identifying non-churn customers (89% recall)
 AUC 0.83 indicates solid separation ability
 # 6. Global SHAP Interpretation
 Global SHAP analysis identifies the most influential features driving churn across the entire dataset.
-# Top Features Increasing Churn (from SHAP summary):
+**Top Features Increasing Churn (from SHAP summary):**
 - Month-to-Month Contract
 - High Monthly Charges
 - Short Tenure
@@ -83,7 +83,7 @@ Month-to-Month contracts strongly push SHAP values towards churn.
 High MonthlyCharges consistently increase churn SHAP scores.
 Customers using Fiber Optic internet have higher churn—likely due to high cost or service issues.
 # Local SHAP Explanations (5 Selected Customers)
-** Customers were chosen automatically based on:**
+**Customers were chosen automatically based on:**
 -Top 3 highest predicted churn probabilities
 -Bottom 2 lowest predicted churn probabilities
 -Selected Indices:
