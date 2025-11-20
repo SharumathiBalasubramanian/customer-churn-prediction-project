@@ -1,0 +1,12 @@
+Index 2631 - model prob=0.969
+Top positive contributors to churn (increase churn probability):
+ - MonthlyCharges: SHAP=1.0464
+ - tenure: SHAP=0.5492
+ - contract_len: SHAP=0.4719
+ - InternetService_Fiber optic: SHAP=0.4408
+ - avg_charge_per_month: SHAP=0.3844
+Top negative contributors to churn (decrease churn probability):
+ - num_services: SHAP=-0.0596
+ - MultipleLines_No phone service: SHAP=-0.0260
+ - PhoneService: SHAP=-0.0227
+ - PaymentMethod_Mailed check: SHAP=-0.0025
