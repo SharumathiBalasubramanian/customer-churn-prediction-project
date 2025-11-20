@@ -1,0 +1,13 @@
+Index 3814 - model prob=0.001
+Top positive contributors to churn (increase churn probability):
+ - MultipleLines_Yes: SHAP=0.0908
+ - InternetService_No: SHAP=0.0291
+ - StreamingTV_Yes: SHAP=0.0257
+ - Dependents: SHAP=0.0228
+ - StreamingMovies_Yes: SHAP=0.0225
+Top negative contributors to churn (decrease churn probability):
+ - tenure: SHAP=-1.3991
+ - contract_len: SHAP=-0.9210
+ - Contract_Two year: SHAP=-0.6314
+ - avg_charge_per_month: SHAP=-0.4878
+ - TotalCharges: SHAP=-0.4641

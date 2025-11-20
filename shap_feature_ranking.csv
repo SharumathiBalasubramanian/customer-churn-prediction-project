@@ -1,0 +1,21 @@
+feature,mean_abs_shap
+contract_len,0.5443229
+tenure,0.4402801
+TotalCharges,0.32290825
+InternetService_Fiber optic,0.28972062
+MonthlyCharges,0.27109998
+avg_charge_per_month,0.26764184
+Contract_Two year,0.21576127
+PaymentMethod_Electronic check,0.17892782
+PaperlessBilling,0.13730736
+OnlineSecurity_Yes,0.13285366
+MultipleLines_Yes,0.11649128
+TechSupport_Yes,0.10798841
+StreamingMovies_Yes,0.08684955
+InternetService_No,0.08386071
+num_services,0.07392761
+Contract_One year,0.06125369
+StreamingTV_Yes,0.057921495
+OnlineBackup_Yes,0.05579382
+SeniorCitizen,0.0547538
+Dependents,0.054292034

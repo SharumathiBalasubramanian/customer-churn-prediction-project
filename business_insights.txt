@@ -1,0 +1,14 @@
+Top SHAP-driven retention strategies:
+
+1. If 'contract_len' is associated with higher churn, consider targeted actions (discounts, retention offers, plan changes, or improved support) for customers scoring high on 'contract_len'.
+
+2. If 'tenure' is associated with higher churn, consider targeted actions (discounts, retention offers, plan changes, or improved support) for customers scoring high on 'tenure'.
+
+3. If 'TotalCharges' is associated with higher churn, consider targeted actions (discounts, retention offers, plan changes, or improved support) for customers scoring high on 'TotalCharges'.
+
+4. If 'InternetService_Fiber optic' is associated with higher churn, consider targeted actions (discounts, retention offers, plan changes, or improved support) for customers scoring high on 'InternetService_Fiber optic'.
+
+5. If 'MonthlyCharges' is associated with higher churn, consider targeted actions (discounts, retention offers, plan changes, or improved support) for customers scoring high on 'MonthlyCharges'.
+
+6. If 'avg_charge_per_month' is associated with higher churn, consider targeted actions (discounts, retention offers, plan changes, or improved support) for customers scoring high on 'avg_charge_per_month'.
+

@@ -1,0 +1,13 @@
+Index 4267 - model prob=0.001
+Top positive contributors to churn (increase churn probability):
+ - MultipleLines_Yes: SHAP=0.0695
+ - DeviceProtection_Yes: SHAP=0.0290
+ - Partner: SHAP=0.0283
+ - InternetService_No: SHAP=0.0279
+ - Dependents: SHAP=0.0223
+Top negative contributors to churn (decrease churn probability):
+ - tenure: SHAP=-1.5043
+ - contract_len: SHAP=-0.9757
+ - TotalCharges: SHAP=-0.6891
+ - Contract_Two year: SHAP=-0.6192
+ - OnlineSecurity_Yes: SHAP=-0.3734

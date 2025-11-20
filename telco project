@@ -1,0 +1,242 @@
+import os
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split, StratifiedKFold, RandomizedSearchCV
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import roc_auc_score, accuracy_score, classification_report, confusion_matrix
+import xgboost as xgb
+import shap
+import matplotlib.pyplot as plt
+import seaborn as sns
+import joblib
+import json
+import warnings
+warnings.filterwarnings("ignore")
+
+# ---------- USER CONFIG ----------
+DATA_PATH = r"C:\Users\Admin\Downloads\project\_-Telco-Customer-Churn dataset.csv" # update if you downloaded another file name
+RANDOM_STATE = 42
+OUTPUT_DIR = r"C:\Users\Admin\Downloads\project\output"
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+# ---------- 1) LOAD DATA ----------
+df = pd.read_csv(DATA_PATH)
+print("Loaded shape:", df.shape)
+print(df.columns.tolist())
+
+# ---------- 2) QUICK CLEAN ----------
+# Example tailored for IBM Telco dataset — adjust column names if you use another dataset
+# Convert TotalCharges to numeric (some rows are empty strings)
+if 'TotalCharges' in df.columns:
+    df['TotalCharges'] = pd.to_numeric(df['TotalCharges'], errors='coerce')
+
+# Drop customerID if present
+if 'customerID' in df.columns:
+    df.drop(columns=['customerID'], inplace=True)
+
+# Target
+TARGET_COL = None
+for cand in ['Churn', 'churn', 'target']:
+    if cand in df.columns:
+        TARGET_COL = cand
+        break
+if TARGET_COL is None:
+    raise ValueError("Target column not found. Ensure dataset has 'Churn' or equivalent.")
+
+# Convert target to binary
+df[TARGET_COL] = df[TARGET_COL].map({'Yes':1, 'No':0}) if df[TARGET_COL].dtype == object else df[TARGET_COL]
+
+# Fill/inspect missing
+print("Missing per column:\n", df.isna().sum().sort_values(ascending=False).head(10))
+
+# Simple missing strategy
+num_cols = df.select_dtypes(include=['int64','float64']).columns.tolist()
+cat_cols = df.select_dtypes(include=['object','category']).columns.tolist()
+
+# Fill numeric missing with median
+for c in num_cols:
+    df[c].fillna(df[c].median(), inplace=True)
+
+# Fill categorical missing with 'Unknown'
+for c in cat_cols:
+    df[c] = df[c].fillna("Unknown")
+
+# ---------- 3) FEATURE ENGINEERING ----------
+# Create some interpretable features common in churn work:
+# - tenure (already present in IBM dataset)
+# - average monthly charge proxy: MonthlyCharges (if present)
+# - ratio: totalcharges / tenure (avg charge over tenure)
+if set(['TotalCharges','tenure']).issubset(df.columns):
+    df['avg_charge_per_month'] = df['TotalCharges'] / (df['tenure'].replace(0, np.nan))
+    df['avg_charge_per_month'].fillna(df['MonthlyCharges'], inplace=True)
+
+# Example: encode contract length numeric if Contract present
+if 'Contract' in df.columns:
+    contract_map = {'Month-to-month':0, 'One year':1, 'Two year':2, 'Unknown':-1}
+    df['contract_len'] = df['Contract'].map(contract_map).fillna(-1)
+
+# Example: service count (count number of 'Yes' in service-related columns)
+service_cols = [c for c in df.columns if any(x in c.lower() for x in ['phone','internet','stream','online','device','backup','techsupport'])]
+def count_yes(row):
+    return sum(1 for c in service_cols if str(row.get(c)).lower() in ['yes','true','1'])
+if service_cols:
+    df['num_services'] = df.apply(count_yes, axis=1)
+else:
+    # fallback: if dataset already has a services count, keep it
+    if 'num_services' not in df.columns:
+        pass
+
+# ---------- 4) ENCODE FEATURES ----------
+# Label encode binary categorical columns; one-hot encode small cardinality categorical
+binary_map = {'Yes':1,'No':0,'Female':0,'Male':1}
+for c in df.select_dtypes(include=['object','category']).columns:
+    unique_vals = df[c].nunique()
+    if unique_vals == 2:
+        df[c] = df[c].map(binary_map).fillna(-1)
+    elif unique_vals <= 10:
+        # one-hot
+        dummies = pd.get_dummies(df[c], prefix=c, drop_first=True)
+        df = pd.concat([df, dummies], axis=1)
+        df.drop(columns=[c], inplace=True)
+    else:
+        # label encode large-cardinality columns
+        le = LabelEncoder()
+        try:
+            df[c] = le.fit_transform(df[c].astype(str))
+        except Exception:
+            df.drop(columns=[c], inplace=True)
+
+# Re-list features
+features = [c for c in df.columns if c != TARGET_COL]
+print("Number of features:", len(features))
+
+# ---------- 5) TRAIN/TEST SPLIT ----------
+X = df[features]
+y = df[TARGET_COL].astype(int)
+X_train, X_test, y_train, y_test = train_test_split(X, y, stratify=y, test_size=0.2, random_state=RANDOM_STATE)
+
+# ---------- 6) MODELING: XGBoost with RandomizedSearchCV ----------
+xgb_clf = xgb.XGBClassifier(objective='binary:logistic', eval_metric='auc', use_label_encoder=False, random_state=RANDOM_STATE, n_jobs=-1)
+
+param_dist = {
+    'n_estimators': [100, 200, 400, 800],
+    'max_depth': [3, 5, 7, 9],
+    'learning_rate': [0.01, 0.05, 0.1, 0.2],
+    'subsample': [0.6, 0.8, 1.0],
+    'colsample_bytree':[0.5, 0.7, 1.0],
+    'reg_alpha':[0, 0.01, 0.1, 1],
+    'reg_lambda':[1, 2, 5]
+}
+
+cv = StratifiedKFold(n_splits=4, shuffle=True, random_state=RANDOM_STATE)
+rs = RandomizedSearchCV(xgb_clf, param_dist, n_iter=30, scoring='roc_auc', n_jobs=-1, cv=cv, random_state=RANDOM_STATE, verbose=1)
+rs.fit(X_train, y_train)
+
+print("Best params:", rs.best_params_)
+best_model = rs.best_estimator_
+
+# Save model config
+with open(os.path.join(OUTPUT_DIR, "model_config.json"), "w") as f:
+    json.dump(rs.best_params_, f, indent=2)
+joblib.dump(best_model, os.path.join(OUTPUT_DIR, "xgb_best_model.joblib"))
+
+# ---------- 7) EVALUATE ----------
+y_pred_proba = best_model.predict_proba(X_test)[:,1]
+y_pred = (y_pred_proba >= 0.5).astype(int)
+print("Test AUC:", roc_auc_score(y_test, y_pred_proba))
+print("Accuracy:", accuracy_score(y_test, y_pred))
+print(classification_report(y_test, y_pred))
+
+# Save evaluation
+eval_stats = {
+    "test_auc": float(roc_auc_score(y_test, y_pred_proba)),
+    "accuracy": float(accuracy_score(y_test, y_pred))
+}
+with open(os.path.join(OUTPUT_DIR, "evaluation.json"), "w") as f:
+    json.dump(eval_stats, f, indent=2)
+
+# ---------- 8) SHAP INTERPRETABILITY ----------
+# Use TreeExplainer for XGBoost
+explainer = shap.TreeExplainer(best_model)
+# compute shap values for test set (this can be heavy if test set is large)
+shap_values = explainer.shap_values(X_test)
+
+# Global summary plot (beeswarm)
+plt.figure(figsize=(10,6))
+shap.summary_plot(shap_values, X_test, show=False)
+plt.tight_layout()
+plt.savefig(os.path.join(OUTPUT_DIR, "shap_summary_beeswarm.png"), dpi=200)
+plt.close()
+
+# Global bar plot (feature importance by mean(|SHAP|)nplt.figure(figsize=(10,6))
+shap.summary_plot(shap_values, X_test, plot_type="bar", show=False)
+plt.tight_layout()
+plt.savefig(os.path.join(OUTPUT_DIR, "shap_summary_bar.png"), dpi=200)
+plt.close()
+
+# Save top 10 features by mean abs SHAP
+mean_abs_shap = np.abs(shap_values).mean(axis=0)
+shap_rank = pd.DataFrame({'feature': X_test.columns, 'mean_abs_shap': mean_abs_shap})
+shap_rank = shap_rank.sort_values('mean_abs_shap', ascending=False).reset_index(drop=True)
+shap_rank.head(20).to_csv(os.path.join(OUTPUT_DIR, "shap_feature_ranking.csv"), index=False)
+
+# ---------- 9) LOCAL EXPLANATIONS: pick 5 representative customers ----------
+# Strategy: three predicted churners (highest prob), two predicted non-churners (lowest prob)
+test_idx = X_test.index
+test_probs = pd.Series(y_pred_proba, index=test_idx)
+predicted_churners = test_probs.sort_values(ascending=False).head(3).index.tolist()
+predicted_nonchurners = test_probs.sort_values(ascending=True).head(2).index.tolist()
+selected_idxs = predicted_churners + predicted_nonchurners
+print("Selected indices for local explanation:", selected_idxs)
+
+# Create force plots & textual rationales
+shap.initjs()
+for idx in selected_idxs:
+    x_row = X_test.loc[idx:idx]
+    sv = explainer.shap_values(x_row)
+    # Force plot - will produce HTML/JS visualization; we save as png via matplotlib fallback (summary of contributions)
+    # We'll compute top contributing features for textual rationale
+    contrib = pd.Series(sv[0], index=x_row.columns)
+    contrib_sorted = contrib.abs().sort_values(ascending=False).head(10)
+    top_features = contrib_sorted.index.tolist()
+    # Create a simple horizontal bar for the local explanation
+    contrib_sorted = contrib.loc[top_features]
+    plt.figure(figsize=(8,4))
+    contrib_sorted.sort_values().plot(kind='barh')
+    plt.title(f'Local SHAP contributions (index {idx}) - + means push to churn')
+    plt.xlabel('SHAP value')
+    plt.tight_layout()
+    fname = os.path.join(OUTPUT_DIR, f"local_shap_{idx}.png")
+    plt.savefig(fname, dpi=200)
+    plt.close()
+
+    # Create textual rationale
+    pos_feats = contrib[contrib>0].sort_values(ascending=False).head(5)
+    neg_feats = contrib[contrib<0].sort_values().head(5)
+    text = f"Index {idx} - model prob={test_probs.loc[idx]:.3f}\n"
+    text += "Top positive contributors to churn (increase churn probability):\n"
+    for f,v in pos_feats.items():
+        text += f" - {f}: SHAP={v:.4f}\n"
+    text += "Top negative contributors to churn (decrease churn probability):\n"
+    for f,v in neg_feats.items():
+        text += f" - {f}: SHAP={v:.4f}\n"
+
+    # Save text explanation
+    with open(os.path.join(OUTPUT_DIR, f"local_explanation_{idx}.txt"), "w") as f:
+        f.write(text)
+
+# ---------- 10) BUSINESS TRANSLATION: auto-generate 3-5 strategies (template) ----------
+# Use top global features to propose actions
+top_global = shap_rank.head(10)
+business_insights = []
+for _, row in top_global.head(6).iterrows():
+    feat = row['feature']
+    business_insights.append(f"If '{feat}' is associated with higher churn, consider targeted actions (discounts, retention offers, plan changes, or improved support) for customers scoring high on '{feat}'.")
+
+with open(os.path.join(OUTPUT_DIR, "business_insights.txt"), "w") as f:
+    f.write("Top SHAP-driven retention strategies:\n\n")
+    for i,ins in enumerate(business_insights,1):
+        f.write(f"{i}. {ins}\n\n")
+
+print("All outputs saved in:", OUTPUT_DIR)
+
