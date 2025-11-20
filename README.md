@@ -1,42 +1,53 @@
 # Interpretable AI : SHAP Analysis of Customer Churn Prediction Model
 Dataset: IBM Telco Customer Churn
+
 Model: XGBoost (Best Hyperparameters Selected via 4-Fold RandomizedSearchCV)
+
 # Project overview
 Customer churn prediction is essential for telecom operators to retain valuable customers. This project aims to build a robust machine learning model that predicts churn and, more importantly, explains why a customer is predicted to churn using interpretable AI techniques such as SHAP (SHapley Additive exPlanations).
 
 # Dataset Description
 Source: IBM Telco Customer Churn Dataset (Kaggle)
+
 Link: https://www.kaggle.com/datasets/blastchar/telco-customer-churn
--Target Variable
-Churn (Yes / No)
+
+- Target Variable: Churn (Yes / No)
 - Number of Rows & Columns
-Rows: 7043
-Columns: 21
-# Main Feature Categories
+  Rows: 7043, Columns: 21
+  
+## Main Feature Categories
+
 **Category	Examples**
 - Customer Demographics	Gender, SeniorCitizen, Partner, Dependents
 - Customer Account Info	Tenure, Contract, PaymentMethod, PaperlessBilling
 - Services Signed Up	PhoneService, InternetService, StreamingTV, StreamingMovies
 - Financial	MonthlyCharges, TotalCharges
-# Data Quality Notes
+  
+## Data Quality Notes
 “TotalCharges” contains whitespace → converted to numeric.
+
 # Data Preprocessing
-- Handled missing values
-Cleaned whitespace in TotalCharges
-Converted to float & imputed missing values (median)
--  Dropped unnecessary ID column
-customerID removed
-- Encoding
-Binary categorical → Label Encoding
-Low-cardinality categorical → One-hot encoding
-Resulting feature count: 33
+**1. Handled missing values**
+  - Cleaned whitespace in TotalCharges
+  - Converted to float & imputed missing values (median)
+    
+**2. Dropped unnecessary ID column**
+  - CustomerID removed
+    
+**3. Encoding**
+  - Binary categorical → Label Encoding
+  - Low-cardinality categorical → One-hot encoding
+  - Resulting feature count: 33
+    
 # Model Development & Hyperparameter Tuning
+
 | **Parameter**    | **Value**          |
 | ---------------- | ------------------ |
 | Model Used       | XGBoostClassifier  |
 | Tuning Method    | RandomizedSearchCV |
 | Iterations       | 30                 |
 | Cross-Validation | 4-fold CV          |
+
 | **Hyperparameter** | **Value** |
 | ------------------ | --------- |
 | subsample          | 1.0       |
@@ -46,6 +57,7 @@ Resulting feature count: 33
 | max_depth          | 5         |
 | learning_rate      | 0.05      |
 | colsample_bytree   | 0.5       |
+
 | **Aspect**              | **Meaning**                                      |
 | ----------------------- | ------------------------------------------------ |
 | Model Depth             | Deeper model (max_depth = 5)                     |
@@ -54,6 +66,7 @@ Resulting feature count: 33
 | Generalization          | Good generalization due to subsample & colsample |
 
 # Model Performance
+
 Test Performance Metrics
 | **Metric**           | **Value** |
 | -------------------- | --------- |
@@ -63,30 +76,38 @@ Test Performance Metrics
 | Recall (No Churn)    | 0.89      |
 | Precision (Churn)    | 0.63      |
 | Recall (Churn)       | 0.52      |
-# Interpretation:
-Model is reasonably good at identifying churn (52% recall)
-Very strong at identifying non-churn customers (89% recall)
-AUC 0.83 indicates solid separation ability
-# 6. Global SHAP Interpretation
+
+## Interpretation:
+- Model is reasonably good at identifying churn (52% recall)
+- Very strong at identifying non-churn customers (89% recall)
+- AUC 0.83 indicates solid separation ability
+  
+# Global SHAP Interpretation
+
 Global SHAP analysis identifies the most influential features driving churn across the entire dataset.
+
 **Top Features Increasing Churn (from SHAP summary):**
-- Month-to-Month Contract
-- High Monthly Charges
-- Short Tenure
-- Fiber Optic Internet
-- Paperless Billing
-- Lack of OnlineSecurity/TechSupport
-- Electronic Payment Method (e.g., E-check)
-# Global Interpretation Summary
-Customers with shorter tenure are far more likely to churn.
-Month-to-Month contracts strongly push SHAP values towards churn.
-High MonthlyCharges consistently increase churn SHAP scores.
-Customers using Fiber Optic internet have higher churn—likely due to high cost or service issues.
+1. Month-to-Month Contract
+2. High Monthly Charges
+3. Short Tenure
+4. Fiber Optic Internet
+5. Paperless Billing
+6. Lack of OnlineSecurity/TechSupport
+7. Electronic Payment Method (e.g., E-check)
+   
+**Global Interpretation Summary:**
+- Customers with shorter tenure are far more likely to churn.
+- Month-to-Month contracts strongly push SHAP values towards churn.
+- High MonthlyCharges consistently increase churn SHAP scores.
+- Customers using Fiber Optic internet have higher churn—likely due to high cost or service issues.
+  
 # Local SHAP Explanations (5 Selected Customers)
+
 **Customers were chosen automatically based on:**
--Top 3 highest predicted churn probabilities
--Bottom 2 lowest predicted churn probabilities
--Selected Indices:
+- Top 3 highest predicted churn probabilities
+- Bottom 2 lowest predicted churn probabilities
+- Selected Indices: [2631, 3536, 6866, 3814, 4267]
+  
 | **Customer ID** | **Risk Level**       | **Top SHAP Drivers (Reasons)**                                                                                             | **Summary**                                                                          |
 | --------------- | -------------------- | -------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | **2631**        | High-Risk Churner    | • Month-to-month contract<br>• Very high monthly charges<br>• Short tenure<br>• Fiber optic service<br>• Paperless billing | High churn risk due to high cost, low loyalty signals, and possible dissatisfaction. |
