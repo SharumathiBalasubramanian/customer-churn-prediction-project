@@ -1,15 +1,15 @@
 # Interpretable AI : SHAP Analysis of Customer Churn Prediction Model
-Dataset: IBM Telco Customer Churn
+**Dataset:** IBM Telco Customer Churn
 
-Model: XGBoost (Best Hyperparameters Selected via 4-Fold RandomizedSearchCV)
+**Model:** XGBoost (Best Hyperparameters Selected via 4-Fold RandomizedSearchCV)
 
 # Project overview
 Customer churn prediction is essential for telecom operators to retain valuable customers. This project aims to build a robust machine learning model that predicts churn and, more importantly, explains why a customer is predicted to churn using interpretable AI techniques such as SHAP (SHapley Additive exPlanations).
 
 # Dataset Description
-Source: IBM Telco Customer Churn Dataset (Kaggle)
+**Source:** IBM Telco Customer Churn Dataset (Kaggle)
 
-Link: https://www.kaggle.com/datasets/blastchar/telco-customer-churn
+**Link:** https://www.kaggle.com/datasets/blastchar/telco-customer-churn
 
 - Target Variable: Churn (Yes / No)
 - Number of Rows & Columns
